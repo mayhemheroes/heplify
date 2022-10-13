@@ -5,7 +5,7 @@ project: heplify
 target: heplify-parsertcp-fuzz
 
 # Base image to run the binary in.
-image: ghcr.io/lotdeef/heplify:latest
+# image: ghcr.io/lotdeef/heplify:latest
 
 # List of commands used to test the target
 cmds:
