@@ -1,0 +1,54 @@
+name: Mayhem
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  MAYHEMFILE: mayhem/Mayhemfile
+
+jobs:
+  build:
+    name: "${{ matrix.os }} shared=${{ matrix.shared }} ${{ matrix.build_type }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        shared: [false]
+        build_type: [Release]
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: mayhem/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Start analysis
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --file ${{ env.MAYHEMFILE }} --duration 300
